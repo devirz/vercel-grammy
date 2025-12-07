@@ -27,7 +27,7 @@ const initializationPromise = bot.init()
     await DB.setLink(linkId, creatorId);
 
     // ساخت URL پایه
-    const BASE_URL = "https://vercel-grammy-beryl.vercel.app/"; 
+    const BASE_URL = "https://vercel-grammy-beryl.vercel.app"; 
     const trackingLink = `${BASE_URL}/api/track?id=${linkId}`;
     
     await ctx.reply(
