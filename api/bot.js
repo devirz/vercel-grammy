@@ -1,6 +1,6 @@
 // api/bot.js
 
-const { Bot } = require("grammy");
+const { Bot, InlineKeyboard } = require("grammy");
 const bot = new Bot(process.env.BOT_TOKEN);
 
 // ۱. ایجاد یک Promise برای نگهداری وضعیت initialization
@@ -17,8 +17,21 @@ const initializationPromise = bot.init()
 
 
 bot.command("start", async (ctx) => {
-  await ctx.reply("سلام! بات شما با موفقیت اجرا شد.");
+  await ctx.reply("Welcome To My Bot!\nsend /info command.");
 });
+
+bot.command("info", async ctx => {
+  const { id, first_name, username, language_code, is_premium } = ctx.from
+  await ctx.reply(`
+    [+] ID: ${id}
+    [+] Name: ${first_name || ""}
+    [+] Username: ${username ? "@" + username : "No Username"}
+    [+] Lang: ${language_code}
+    [+] is Premium: ${is_premium ? "Yes" : "No"}
+    `, {
+      reply_markup: new InlineKeyboard().text(new Date().toLocaleTimeString())
+    })
+})
 
 // ۲. تابع هندلر (Handler) که منتظر اتمام Promise می‌ماند
 module.exports = async (req, res) => {
