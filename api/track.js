@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
         }
         
         const { creatorId } = linkData;
-        const privateUserIP = req.connection.remoteAddress;
+        const privateUserIP =  req.headers['x-real-ip'];
         // const privateUserIP = req.headers['x-forwarded-for'];
         const privateUserAgent = req.headers['user-agent'];
         console.log(`IP: ${privateUserIP} | ${privateUserAgent}`)
