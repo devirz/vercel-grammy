@@ -25,12 +25,12 @@ module.exports = async (req, res) => {
         }
         
         const { creatorId } = linkData;
-        const privateUserIP =  req.headers['x-real-ip'];
+        const privateUserIP =  req.headers['cf-connecting-ip'];
         // const privateUserIP = req.headers['x-forwarded-for'];
         const privateUserAgent = req.headers['user-agent'];
         console.log(`IP: ${privateUserIP} | ${privateUserAgent}`)
-         fetch('https://api.ipify.org?format=json')
-            .then(res => res.json()).then(s => console.log(s))
+        //  fetch('https://api.ipify.org?format=json')
+        //     .then(res => res.json()).then(s => console.log(s))
         // ۲. ارسال اعلان به خالق لینک
         // از آنجایی که نیاز به IP یا موقعیت مکانی نداریم، این عملیات اخلاقی است
         bot.api.sendMessage(
