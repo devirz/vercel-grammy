@@ -16,68 +16,49 @@ const client = createClient({
         port: 11519
     }
 });
+client.on('error', (err) => {
+    console.error('Redis Client Error:', err);
+});
 
-// پرچم برای جلوگیری از تلاش‌های مکرر اتصال در Cold Start
-let isClientConnected = false;
-
-/**
- * اتصال به Redis و مدیریت خطاها
- */
-async function connectClient() {
-    if (isClientConnected) {
-        return;
-    }
-    
-    // مدیریت خطا
-    client.on('error', (err) => {
-        console.error('Redis Client Error:', err);
-        // در محیط Vercel، اجازه می‌دهیم خطا در صورت نیاز به بیرون پرتاب شود
+// ۳. شروع اتصال در سطح ماژول و ذخیره Promise آن (فقط یک بار)
+// هر عملیات DB منتظر نتیجه این پرامیس می‌ماند.
+const connectionPromise = client.connect()
+    .then(() => console.log("Redis client connected successfully and ready for reuse."))
+    .catch(e => {
+        console.error("Failed to connect Redis client during Cold Start:", e);
+        // در صورت عدم موفقیت در اتصال اولیه، تابع کرش می‌کند.
+        throw e; 
     });
-
-    try {
-        await client.connect();
-        isClientConnected = true;
-        console.log("Redis client connected successfully.");
-    } catch (e) {
-        console.error("Failed to connect Redis client:", e);
-        throw e; // کرش کردن در Cold Start اگر اتصال برقرار نشود
-    }
-}
 
 
 const DB = {
     
-    // اطمینان از اتصال قبل از اجرای هر عملیات
+    // ۴. تابع تضمین اتصال (فقط منتظر حل Promise می‌ماند)
+    // اگر پرامیس قبلاً حل شده باشد (Warm Start)، بلافاصله برمی‌گردد.
     async ensureConnected() {
-        if (!isClientConnected) {
-            await connectClient();
-        }
+        await connectionPromise;
     },
 
-    // ۱. ذخیره لینک و ID خالق با تعیین زمان انقضا (SET ... EX)
+    // تمامی عملیات‌ها مانند setLink و getLinkData از ensureConnected استفاده می‌کنند
     async setLink(linkId, creatorId) {
-        await this.ensureConnected(); // اتصال را تضمین می‌کنیم
+        await this.ensureConnected(); // تنها منتظر حل Promise اتصال می‌ماند
         
         const linkKey = `link:${linkId}`;
         const value = JSON.stringify({ creatorId });
         
-        // فرمان: SET link:id {"creatorId": 1234} EX 900
         await client.set(linkKey, value, {
-            EX: LINK_EXPIRY_SECONDS, // زمان انقضا
+            EX: LINK_EXPIRY_SECONDS,
         });
     },
 
-    // ۲. بازیابی لینک (GET)
     async getLinkData(linkId) {
-        await this.ensureConnected(); // اتصال را تضمین می‌کنیم
+        await this.ensureConnected(); // تنها منتظر حل Promise اتصال می‌ماند
         
         const linkKey = `link:${linkId}`;
-        
-        // فرمان: GET link:id
         const jsonString = await client.get(linkKey); 
 
         if (!jsonString) {
-            return null; // لینک یافت نشد یا منقضی شده
+            return null; 
         }
         
         try {
@@ -88,12 +69,10 @@ const DB = {
         }
     },
     
-    // ۳. حذف لینک (DEL)
     async deleteLink(linkId) {
-        await this.ensureConnected(); // اتصال را تضمین می‌کنیم
+        await this.ensureConnected(); // تنها منتظر حل Promise اتصال می‌ماند
         
         const linkKey = `link:${linkId}`;
-        // فرمان: DEL link:id
         await client.del(linkKey);
     }
 };
