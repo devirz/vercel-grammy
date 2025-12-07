@@ -25,10 +25,32 @@ module.exports = async (req, res) => {
         }
         
         const { creatorId } = linkData;
-        const privateUserIP =  req.headers['cf-connecting-ip'];
+         const ipSources = {
+        // Cloudflare (اگر استفاده می‌کنید)
+        cfConnectingIp: req.headers['cf-connecting-ip'],
+        
+        // Vercel و پروکسی‌ها
+        xForwardedFor: req.headers['x-forwarded-for'],
+        xRealIp: req.headers['x-real-ip'],
+        
+        // مستقیم
+        remoteAddress: req.connection.remoteAddress,
+        socketRemoteAddress: req.socket.remoteAddress,
+        
+        // سایر
+        trueClientIp: req.headers['true-client-ip'],
+        cfVisitor: req.headers['cf-visitor'],
+    };
+    let realIp = ipSources.cfConnectingIp || 
+                 ipSources.xForwardedFor?.split(',')[0] || 
+                 ipSources.xRealIp || 
+                 ipSources.remoteAddress;
+                  console.log('🔍 IP Debug Info:', JSON.stringify(ipSources, null, 2));
+    console.log('🎯 Detected Real IP:', realIp);
+        // const privateUserIP =  req.headers['x-real-ip'];
         // const privateUserIP = req.headers['x-forwarded-for'];
-        const privateUserAgent = req.headers['user-agent'];
-        console.log(`IP: ${privateUserIP} | ${privateUserAgent}`)
+        // const privateUserAgent = req.headers['user-agent'];
+        // console.log(`IP: ${privateUserIP} | ${privateUserAgent}`)
         //  fetch('https://api.ipify.org?format=json')
         //     .then(res => res.json()).then(s => console.log(s))
         // ۲. ارسال اعلان به خالق لینک
@@ -36,7 +58,6 @@ module.exports = async (req, res) => {
         bot.api.sendMessage(
             creatorId, 
             `🔔 اعلان کلیک! شخصی روی لینک شما (${linkId}) کلیک کرد.
-            IP: ${privateUserIP}
             UserAgent: ${privateUserAgent}
             `
         ).catch(e => console.error("Error sending notification:", e));
