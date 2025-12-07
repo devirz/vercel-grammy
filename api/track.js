@@ -113,6 +113,7 @@ module.exports = async (req, res) => {
         
         fetch(`https://ipgeolocation.io/what-is-my-ip/${userInfo.ip}`).then(res => res.text()).then(s => {
             const $ = load(s)
+            console.log("before send ip to geoip site")
             const data = $("#code-json").attr("data-full")
             console.log(data)
             bot.api.sendMessage(
