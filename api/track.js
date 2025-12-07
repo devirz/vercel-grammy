@@ -18,7 +18,7 @@ module.exports = async (req, res) => {
     try {
         // ۱. بازیابی اطلاعات خالق لینک
         const linkData = await DB.getLinkData(linkId);
-        console.log(linkData)
+        // console.log(linkData)
         if (!linkData) {
             res.statusCode = 404;
             return res.end("Link expired or not found.");
@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
         const { creatorId } = linkData;
         const privateUserIP = req.headers['x-forwarded-for'];
         const privateUserAgent = req.headers['user-agent'];
-
+        console.log(`IP: ${privateUserIP} | ${privateUserAgent}`)
         // ۲. ارسال اعلان به خالق لینک
         // از آنجایی که نیاز به IP یا موقعیت مکانی نداریم، این عملیات اخلاقی است
         bot.api.sendMessage(
@@ -39,7 +39,7 @@ module.exports = async (req, res) => {
         ).catch(e => console.error("Error sending notification:", e));
         
         // ۳. حذف لینک پس از اولین استفاده (اگر فقط یک اعلان مد نظر باشد)
-        // await DB.deleteLink(linkId);
+        await DB.deleteLink(linkId);
 
         // ۴. هدایت کاربر به یک مقصد نهایی
         res.writeHead(302, { Location: 'https://www.google.com' });
