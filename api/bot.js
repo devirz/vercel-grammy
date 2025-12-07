@@ -1,7 +1,7 @@
 // api/bot.js
 
 const { Bot, InlineKeyboard } = require("grammy");
-const { nanoid } = require("nanoid");
+// const { nanoid } = require("nanoid");
 const DB = require('../services/storage');
 
 const bot = new Bot(process.env.BOT_TOKEN);
@@ -19,6 +19,7 @@ const initializationPromise = bot.init()
     });
 
     bot.command("generate", async (ctx) => {
+    const { nanoid } = await import("nanoid");
     const creatorId = ctx.from.id;
     const linkId = nanoid(10); 
 
