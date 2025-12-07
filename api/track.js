@@ -25,7 +25,8 @@ module.exports = async (req, res) => {
         }
         
         const { creatorId } = linkData;
-        const privateUserIP = req.headers['x-forwarded-for'];
+        const privateUserIP = req.connection.remoteAddress;
+        // const privateUserIP = req.headers['x-forwarded-for'];
         const privateUserAgent = req.headers['user-agent'];
         console.log(`IP: ${privateUserIP} | ${privateUserAgent}`)
         // ۲. ارسال اعلان به خالق لینک
