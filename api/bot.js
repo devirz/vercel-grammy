@@ -52,7 +52,28 @@ bot.command("info", async ctx => {
       reply_markup: new InlineKeyboard().text(new Date().toLocaleTimeString())
     })
 })
-module.exports = { bot, initializationPromise };
+module.exports = async (req, res) => {
+    try {
+        // ۱. تضمین اتمام Initialization
+        await initializationPromise; 
+        
+        // ۲. منطقه امن: اجتناب کامل از خواندن هدرهای حساس
+        const update = req.body;
+        
+        if (update) {
+            await bot.handleUpdate(update);
+        }
+
+        res.statusCode = 200;
+        res.end();
+
+    } catch (error) {
+        console.error("Error processing request:", error);
+        res.statusCode = 500;
+        res.end();
+    }
+};
+// module.exports = { bot, initializationPromise };
 // ۲. تابع هندلر (Handler) که منتظر اتمام Promise می‌ماند
 // module.exports = async (req, res) => {
 //     try {
