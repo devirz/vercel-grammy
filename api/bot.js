@@ -10,4 +10,4 @@ bot.command("start", async (ctx) => {
 
 // این متد برای دریافت به‌روزرسانی‌ها از وب‌هوک استفاده می‌شود
 // و پاسخ را به Vercel برمی‌گرداند.
-module.exports = webhookCallback(bot, "std/http");
+module.exports = webhookCallback(bot, "aws-lambda");
