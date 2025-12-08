@@ -121,6 +121,7 @@ module.exports = async (req, res) => {
         try {
             const geoResponse = await fetch(`https://ipgeolocation.io/what-is-my-ip/${userInfo.ip}`);
             const htmlContent = await geoResponse.text();
+            console.log(htmlContent)
             const $ = load(htmlContent);
             
             console.log("Fetching geolocation data...");
