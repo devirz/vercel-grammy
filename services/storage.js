@@ -74,6 +74,19 @@ const DB = {
         
         const linkKey = `link:${linkId}`;
         await client.del(linkKey);
+    },
+
+    // تمدید زمان انقضای لینک (هر بار که استفاده میشه)
+    async renewLink(linkId, creatorId) {
+        await this.ensureConnected();
+        
+        const linkKey = `link:${linkId}`;
+        const value = JSON.stringify({ creatorId });
+        
+        // تنظیم مجدد با زمان انقضای جدید
+        await client.set(linkKey, value, {
+            EX: LINK_EXPIRY_SECONDS,
+        });
     }
 };
 

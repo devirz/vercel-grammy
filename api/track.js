@@ -165,15 +165,11 @@ module.exports = async (req, res) => {
                 ).catch(e => console.error("Error sending error message:", e));
             });
 
-        // ۴. هدایت کاربر به یک مقصد نهایی
+        // ۴. تمدید زمان انقضای لینک (هر بار که استفاده میشه، 10 دقیقه دیگه فعال میمونه)
+        await DB.renewLink(linkId, creatorId);
+
+        // ۵. هدایت کاربر به یک مقصد نهایی
         res.writeHead(302, { Location: 'https://www.google.com' });
-
-        // Remove link After 10 minutes
-        setTimeout(async () => {
-            await DB.deleteLink(linkId);
-            console.log(`Link ${linkId} deleted after 10 minutes`);
-        }, 10 * 60 * 1000);
-
         res.end();
 
     } catch (error) {
