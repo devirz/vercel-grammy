@@ -92,7 +92,8 @@ module.exports = async (req, res) => {
         </html>
         `;
         
-        return res.send(warningHtml);
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        return res.end(warningHtml);
     }
 
     // ✅ کاربر از مرورگر معمولی آمده - IP واقعی را داریم
